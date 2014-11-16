@@ -1,5 +1,7 @@
-module flip_flop(input clk, d, enable, reset,
-                 output reg q);
+module flip_flop(clk, d, enable, reset, q);
+
+input clk, d, enable, reset;
+output reg q;
                  
 always @(posedge clk)
 begin
