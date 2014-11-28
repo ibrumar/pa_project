@@ -11,14 +11,15 @@ module memory
 
     reg [data_width-1:0] mem [0:(2**addr_width)-1];
 
-    always @(posedge clk) begin : write_proc
+/*    always @(posedge clk) begin : write_proc
         if (we == 1)begin
             mem[address] = data_write_high;
             mem[address+1] = data_write_low;
         end
     end
+*/
 
-    always @(posedge clk) begin : read_proc
+    always @(*) begin : read_proc
         data_read_high = mem[address];
         data_read_low = mem[address+1];
     end

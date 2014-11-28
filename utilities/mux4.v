@@ -3,7 +3,7 @@ module mux4(
   input [15:0] b,
   input [15:0] c,
   input [15:0] d,
-  input [3:0] sel,
+  input [3:0] sel, //cambiar a 2 bits
   output reg   [15:0] out);
   
   always @(*)

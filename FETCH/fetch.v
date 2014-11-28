@@ -26,7 +26,7 @@ module fetch(
 
   
 mux4 my_mux(
-.a(initial_instruction),
+.a(initial_instruction), //cambiar a i_I_address
 .b(adder_out__mux_b_in),
 .sel(sel),
 .out(mux_out__reg_in)
