@@ -21,9 +21,10 @@ initial begin
   reset=0;
   initial_instruction= 16'h00_0C;
   sel=4'h0; //starts with the initial instruction
-  
+ 
+  #10 reset=1; 
   #10 enable=1;
-  #10 reset=1;
+ 
   
   #50  sel=4'h1; //change to next instruction
 
