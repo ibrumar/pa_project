@@ -11,26 +11,27 @@ reg [2:0] rb;
 
 
 initial begin
-  clock=1;
-  d=4'h5;
-  reset=0;
-  writeEnable=1;  
-  writeAddr=1;
-  ra = 1;
-  rb = 8;
+  clock<=1;
+  d<=4'h5;
+  reset<=0;
+  writeEnable<=1;  
+  writeAddr<=1;
+  ra <= 1;
+  rb <= 8;
   
   
-  #20 reset=1;
+  #20 reset<=1;
   //we should read ra=1 and rb=8
   
-  #20 d=4'h1;
-  writeEnable=0;  
-  writeAddr=8;
-  ra = 1;
-  rb = 8;
+  #20 
+ // writeEnable<=0;
+  d<=4'h1; 
+  writeAddr<=8;
+  ra <= 1;
+  rb <= 8;
   //writing should't be allowed and in rb we should read 0
   
-  #20 writeEnable=1;  
+ // #20 writeEnable<=1;  
 
 end
 
