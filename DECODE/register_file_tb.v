@@ -40,7 +40,7 @@ always begin
 end
 
 
-register_file #(16) my_register_file(
+register_file my_register_file(
 .clk(clock),
 .ra(ra),
 .rb(rb),
