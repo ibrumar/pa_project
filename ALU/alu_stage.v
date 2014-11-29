@@ -5,9 +5,11 @@ module alu_stage(
   input [3:0]cop,
   input [2:0]destReg_adr,
   input we,
-  input [2:0]regA_adr,
-  input [2:0]regB_adr,
-  input [2:0]inst_freeBits,
+  
+  //THE FOLLOWING 3 inputs must be an immediate of 9 bits
+  //input [2:0]regA_adr,
+  //input [2:0]regB_adr,
+  //input [2:0]inst_freeBits,
         
   input clk,
   input enable,

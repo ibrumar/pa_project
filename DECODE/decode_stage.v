@@ -1,15 +1,14 @@
-module fetch(
+module decode(
   input [15:0]initial_instruction,
-  input [3:0]sel, //SEL ES DE 2 bits
-  input [15:0]branch_pc, //MODIFIED
+  input [3:0]sel,
     
   input clk,
   input enable,
-  input reset,
-
-  input clk_mem, 
-  output[7:0]instruction_code_high,
-  output[7:0]instruction_code_low
+  input reset, //the reset is   
+  
+  input[7:0]instruction_code_high,
+  input[7:0]instruction_code_low //those should be all the inputs.
+  //no pc is needed because we don't have relative jumps for the moment
   
   //output[15:0]out_mux,  //debugg
   //output[15:0]out_reg  //debugg     
