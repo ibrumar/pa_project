@@ -4,6 +4,21 @@ reg d;
 reg clock, reset, enable;
 
 initial begin
+  
+  clock=1;
+  d=0;
+  reset=0;
+  enable=1;  
+  
+  #10 reset=1;
+  #15
+  d=1;
+  //we should read 1
+  #15
+  d=0;
+  enable=0;
+  
+  /* OLD TEST
   clock=1;
   reset=0;
 
