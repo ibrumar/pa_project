@@ -3,16 +3,16 @@ module mux4(
   input [15:0] b,
   input [15:0] c,
   input [15:0] d,
-  input [3:0] sel, //cambiar a 2 bits
+  input [1:0] sel, 
   output reg   [15:0] out);
   
   always @(*)
   begin
     case(sel)
-      2'd0 : out=a;
-      2'd1 : out=b;
-      2'd2 : out=c;
-      2'd3 : out=d;
+      2'b00 : out=a;
+      2'b01 : out=b;
+      2'b10 : out=c;
+      2'b11 : out=d;
       default : out= 16'hx;
     endcase
   end
