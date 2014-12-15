@@ -1,7 +1,7 @@
 module tlblookup_stage(
   
   input       clk,
-  input       enable_tlblookup
+  input       enable_tlblookup,
   input       reset,
   
   input[15:0]alu_result,
