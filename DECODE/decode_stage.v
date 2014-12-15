@@ -8,6 +8,7 @@ module decode(
   output [15:0] regB,
   output [3:0] cop,
   output [2:0] destReg_addr,
+  output [8:0] inmed,
   output reg writeEnableALU,
   
   //common inputs
