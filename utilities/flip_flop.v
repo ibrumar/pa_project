@@ -9,7 +9,7 @@ begin
       q <= 0;  
     end
     
-  else if (enable == 1) begin
+  else if (enable === 1) begin
       q <= d;
   end 
 end

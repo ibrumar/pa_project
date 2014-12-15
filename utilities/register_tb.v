@@ -7,15 +7,21 @@ initial begin
   clock=1;
   enable=0;
   reset=0;
-  d=16'h0;
+  
+  
   #10 reset=1;
-  #10 d=16'hAA_AA;
-  #5 enable=1;
+  d=16'h0001;
+  
+  #10 enable=1;
+  #10 d=16'h0002;
+  
+  #10 d=16'h0003;
+  
+
   #10 enable=0;
-  d=16'hBB_BB;
-  #5 enable=1;
-  #10 enable=0;
-  d=16'hCC_CC;
+  d=16'h0004;
+  
+  /*
   #5 enable=1;
   #10 enable=0;
   d=16'hDD_DD;
@@ -27,7 +33,7 @@ initial begin
   #10 d=16'hDD_DD;
 
   #100 enable=0;
-  
+  */
 end
 
 always begin
