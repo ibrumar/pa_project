@@ -64,7 +64,7 @@ module decode(
   //FETCH PC Control
   always @(*)
   begin
-    if (reset == 1)
+    if (reset == 0)
       begin
       sel_pc <= 2'b00; //select the initial address if we're in reset
       end
