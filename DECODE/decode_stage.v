@@ -9,6 +9,7 @@ module decode(
   output [3:0] cop,
   output [2:0] destReg_addr,
   output reg writeEnableALU,
+  output [8:0] inmed,
   
   //common inputs
   input clk,   //the clock is the same for ev.

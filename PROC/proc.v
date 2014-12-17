@@ -36,42 +36,6 @@ wire [2:0]  destReg_addrDECODE;
 wire        writeEnableDECODE;
 
 
-tlblookup_stage my_tlb(
-.clk(clk),
-.enable_tlblookup(1'b1),
-.reset(reset),
-  
-.alu_result(alu_resultTLB),
-.destReg_addr_input(destReg_addrTLB),
-.we_input(writeEnableTLB),
-  
-//outputs
-.tlblookup_result(alu_resultWB),
-.destReg_addr_output(destReg_addrWB),
-.we_output(writeEnableWB)
-);
-
-
-alu_stage my_alu(
-.regA(regA),
-.regB(regB),
-.cop(cop),
-.destReg_addr(destReg_addrALU),
-.we(writeEnableALU),
-.inmediate(inmediate),
-  
-.clk(clk),
-.enable_alu(1'b1),
-.reset(reset),
-
-//output
-.alu_result(alu_resultTLB),
-.OVF(),                       //NOT CONNECTED
-.destReg_addr_output(destReg_addrTLB),
-.we_output(writeEnableTLB)
-
-);
-
 fetch my_fetch(
 .initial_inst_addr(16'h000c),  //fixed initial instruction address
 .sel_pc(sel_pc),               //select the d input of pc register
@@ -95,7 +59,7 @@ decode my_decode(
 .cop(cop),
 .destReg_addr(destReg_addrALU),
 .writeEnableALU(writeEnableALU),
-  
+.inmed(inmediate), 
   //common inputs
 .clk(clk),   //the clock is the same for ev.
 .reset(reset), //the reset is the same for everyone
@@ -111,5 +75,58 @@ decode my_decode(
 );
 
 
+alu_stage my_alu(
+.regA(regA),
+.regB(regB),
+.cop(cop),
+.destReg_addr(destReg_addrALU),
+.we(writeEnableALU),
+.inmediate(inmediate),
+  
+.clk(clk),
+.enable_alu(1'b1),
+.reset(reset),
+
+//output
+.alu_result(alu_resultTLB),
+.OVF(),                       //NOT CONNECTED
+.destReg_addr_output(destReg_addrTLB),
+.we_output(writeEnableTLB)
+
+);
+
+
+tlblookup_stage my_tlb(
+.clk(clk),
+.enable_tlblookup(1'b1),
+.reset(reset),
+  
+.alu_result(alu_resultTLB),
+.destReg_addr_input(destReg_addrTLB),
+.we_input(writeEnableTLB),
+  
+//outputs
+.tlblookup_result(alu_resultWB),
+.destReg_addr_output(destReg_addrWB),
+.we_output(writeEnableWB)
+);
+
+
+//WB
+wb_stage my_wb(
+.clk(clk),
+.enable_tlblookup(1'b1),
+.reset(reset),
+  
+ //input 
+.tlblookup_result(alu_resultWB),
+.destReg_addr_input(destReg_addrWB),
+.we_input(writeEnableWB),
+  
+  //output
+.wb_result(alu_resultDECODE),
+.destReg_addr_output(destReg_addrDECODE),
+.we_output(writeEnableDECODE)
+);
 
 endmodule
