@@ -12,7 +12,7 @@ module register_file#(parameter NUM_REGISTERS = 8, parameter LOG_NUM_REGISTERS=3
   );
 
   //wire signed [NUM_REGISTERS-1:0] extendedReset = reset;
-  wire [NUM_REGISTERS-1:0] writeEnableInternal1;
+  wire [7:0] writeEnableInternal1;
   //wire writeEnableInternal2[NUM_REGISTERS-1:0];
   wire [WIDTH*NUM_REGISTERS - 1:0]concatenated_outputs; //reading
 
