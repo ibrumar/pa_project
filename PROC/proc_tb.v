@@ -8,7 +8,7 @@ initial begin
   clk<=1;
   reset<=0;
  
-  #10 reset<=1; 
+  #20 reset<=1; 
   
 end
 

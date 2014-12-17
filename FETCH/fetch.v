@@ -28,7 +28,7 @@ mux4 my_mux(
 register my_pc(
   .clk(clk),
   .enable(enable_pc),
-  .reset(reset),
+  .reset(1'b1),
   .d(mux_out__pc_in),
   .q(pc_out__mem_in)
 );
