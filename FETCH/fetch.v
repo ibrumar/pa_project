@@ -7,9 +7,9 @@ module fetch(
   input enable_pc,
   input reset,
 
-  output[7:0]inst_code_high,  
-  output[7:0]inst_code_low
-  
+  //output[7:0]inst_code_high,  
+  //output[7:0]inst_code_low
+  output[15:0]inst_code
 );
 
   wire [15:0]mux_out__pc_in;
@@ -36,10 +36,11 @@ register my_pc(
 
 memory my_memory(
   .address(pc_out__mem_in),
-  .data_read_high(inst_code_high),
-  .data_read_low(inst_code_low),
-  .data_write_low(8'hxx),
-  .data_write_high(8'hxx),
+  //.data_read_high(inst_code_high),
+  .data_read(inst_code),
+  //.data_read_low(inst_code_low),
+  .data_write_low(16'hxx),
+  .data_write_high(16'hxx),
   .we(1'b0),
   .clk(clk)
 );

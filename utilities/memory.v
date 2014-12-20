@@ -1,13 +1,13 @@
 module memory
-    #(parameter data_width = 8,
+    #(parameter data_width = 16,
       parameter addr_width = 16)
      (input  [addr_width-1:0] address,
       input  [data_width-1:0] data_write_high,
       input  [data_width-1:0] data_write_low,
       input                   clk,
       input                   we,
-      output reg [data_width-1:0] data_read_high,
-      output reg [data_width-1:0] data_read_low);
+      //output reg [data_width-1:0] data_read_high,
+      output reg [data_width-1:0] data_read);
 
     reg [data_width-1:0] mem [0:(2**addr_width)-1];
 
@@ -20,8 +20,8 @@ module memory
 */
 
     always @(*) begin : read_proc
-        data_read_high = mem[address];
-        data_read_low = mem[address+1];
+        data_read = mem[address];
+        //data_read_low = mem[address+1];
     end
 
 endmodule

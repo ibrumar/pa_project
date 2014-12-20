@@ -75,13 +75,17 @@ module decode(
     else
       begin
       if (q_instruction_code[15:12] == 4'b0101 && regA != 16'h0000)
+      begin
         next_instruction_code_high <= 8'h0;
         next_instruction_code_low <= 8'h0;
         sel_pc <= 2'b10; //if branch and regA != 0 then jump
+      end
       else 
+      begin
         next_instruction_code_high <= instruction_code_high;
         next_instruction_code_low <= instruction_code_low;
         sel_pc <= 2'b01; //if not branch or branch doesn't jump then implicit sequencing
+      end
     end
   end
     

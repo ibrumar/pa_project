@@ -6,6 +6,7 @@ module proc(
 //fetch-decode
 wire [7:0]  inst_code_high;
 wire [7:0]  inst_code_low;
+wire [15:0] inst_code;
 
 //decode-fetch
 wire [1:0]  sel_pc;     
@@ -45,9 +46,11 @@ fetch my_fetch(
 .enable_pc(1'b1),
 .reset(reset),                //Not necessary by this moment
 
-.inst_code_high(inst_code_high),  
-.inst_code_low(inst_code_low)
+.inst_code(inst_code)
 );
+
+assign inst_code_high = inst_code[15:8];
+assign inst_code_low = inst_code[7:0];
 
 decode my_decode(
 .sel_pc(sel_pc),              //pc selection for fetch stage
