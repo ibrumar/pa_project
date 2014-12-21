@@ -1,0 +1,17 @@
+MOV R1 0
+MOV R2 1
+MOV R3 10
+MOV R6 0x0c
+MOV R7 0x00
+NOP
+ADD R1 R1 R2
+
+#store R1 in R7+inmed
+ST R1 R7 1
+LD R0 R7 1
+# if R4==R3 R5=1 else R5=0
+CMP R5 R1 R3
+
+#if R5!=0 branch to R6
+BNZ R5 R6
+
