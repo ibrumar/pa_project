@@ -140,18 +140,28 @@ def create_file(init_address, code):
 
 #MAIN
 code=""
+
+if len(sys.argv) != 2:
+    print "Usage " + str(sys.argv[0]) + " generate_memory[0|1]"
+    exit(0)
+
+generateMemory = (sys.argv[1] == "1")
+
+
 for line in sys.stdin:
     if line[0][0]!="#" and line != "\n":
         if '\n' in line:
              line=line[:-1]
         items=line.split(" ")
         decoded_line= translate_items(items)
-        print line.ljust(10," ")+ "\t"+decoded_line
+        if not generateMemory:
+            print line.ljust(10," ")+ "\t"+decoded_line
         splited_binary= split_n(decoded_line, 4)
         #print splited_binary
         code+= splited_to_hex(splited_binary)
 #print code
-create_file(12, code)
+if generateMemory:
+   create_file(12, code)
          
         
 
