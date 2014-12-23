@@ -18,7 +18,7 @@ module fetch(
   
 mux4 my_mux(
   .a(initial_inst_addr), 
-  .b(pc_out__mem_in+2'b10),
+  .b(pc_out__mem_in+2'b01),
   .c(branch_pc),
   .d(16'h000),
   .sel(sel_pc),
