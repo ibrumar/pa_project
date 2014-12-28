@@ -10,6 +10,7 @@ module decode(
   output [2:0] destReg_addr,
   output reg writeEnableALU,
   output [8:0] inmed,
+  output reg [1:0] bp_output,
   
   //common inputs
   input clk,   //the clock is the same for ev.
@@ -20,17 +21,46 @@ module decode(
   input[7:0]instruction_code_low, //inputs from fetch
   //no pc is needed because we don't have relative jumps for the moment
   
-  //inputs from write_back
+  //inputs from ALU
+  input[2:0]destReg_addrALU,
+  input[15:0]alu_result,
+  input[1:0] bp_ALU,
+  
+  //inputs from TLB
+  input[2:0]destReg_addrTLB,
+  input[15:0]tlblookup_result,
+  input[1:0] bp_TLB,
+  
+  //inputs from CACHE
+  input[2:0]destReg_addrCACHE,
+  input[15:0]cache_result,
+  input[1:0] bp_CACHE,
+
+  //inputs from WB
+  input[2:0]destReg_addrWB,
+  input[15:0]wb_result,
+  input[1:0] bp_WB,
+
+  
   input [15:0] dWB,
   input [2:0] writeAddrWB,
   input writeEnableWB //when write enable, write d into writeAddr
 
+  
 );
 
   
   wire [7:0] q_instruction_code_high;
   wire [7:0] q_instruction_code_low;
   wire [15:0] regBWire;
+
+  //ddavila: bypass
+  wire [15:0] regAWire;
+  wire[15:0]out_bypass_a;
+  wire[15:0]out_bypass_b;  
+  reg[2:0]sel_bypass_a;
+  reg[2:0]sel_bypass_b;
+
   reg [7:0] next_instruction_code_high;
   reg [7:0] next_instruction_code_low;
 
@@ -51,17 +81,46 @@ module decode(
   assign destReg_addr = q_instruction_code[11:9];
   assign inmed = q_instruction_code[8:0];
   
+  //ddavila:
+  wire [2:0]operating_a;
+  wire [2:0]operating_b;
+  assign operating_a=q_instruction_code[8:6];
+  assign operating_b=q_instruction_code[2:0];
+  
+    
  register_file my_register_file(
   .clk(clk), //cambiar a i_I_address
   .reset(reset),
-  .ra(q_instruction_code[8:6]),
-  .rb(q_instruction_code[2:0]),
+  .ra(q_instruction_code[8:6]),//cambiar a operating_a
+  .rb(q_instruction_code[2:0]),//cambiar a operating_b
   .d(dWB),
   .writeAddr(writeAddrWB),
   .writeEnable(writeEnableWB),
-  .a(regA),
+  .a(regAWire),
   .b(regBWire)
 );
+
+//ddavila: MUXs for BYPASS
+
+  mux5 mux_bypass_a(
+  .a(regAWire),
+  .b(alu_result),
+  .c(tlblookup_result),
+  .d(cache_result),
+  .e(wb_result),
+  .sel(sel_bypass_a),
+  .out(out_bypass_a)
+  );
+  
+  mux5 mux_bypass_b(
+  .a(regBWire),
+  .b(alu_result),
+  .c(tlblookup_result),
+  .d(cache_result),
+  .e(wb_result),
+  .sel(sel_bypass_b),
+  .out(out_bypass_b)
+  );  
 
   //FETCH PC Control
   always @(*)
@@ -87,12 +146,28 @@ module decode(
         sel_pc <= 2'b01; //if not branch or branch doesn't jump then implicit sequencing
       end
     end
-  end
     
-  assign branch_pc = regBWire; // goes to FETCH. The other inputs to the PC have their source in fetch.
-  assign regB = regBWire; //goes to ALU
+  end
   
-
+  //TRACK type of instruction for BYPASS(bp bits)
+  always @(*)
+  begin
+    sel_bypass_b<= 3'b000;
+    sel_bypass_a<= 3'b000;
+    case(q_instruction_code[15:12])//cop
+      4'b0000 : bp_output <= 0;
+      4'b0110 : bp_output <= 2;
+      4'b0111 : bp_output <= 2;
+      default : bp_output <= 1;
+    endcase
+  end
+  
+  
+  //ddavila: I have modified some things here to include bypass muxs  
+  assign branch_pc = out_bypass_b; // goes to FETCH. The other inputs to the PC have their source in fetch.
+  assign regB = out_bypass_b; //goes to ALU
+  assign regA = out_bypass_a; //goes to ALU
+  
   //ALU write_enable
   always @(*)
   begin
