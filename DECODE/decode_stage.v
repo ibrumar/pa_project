@@ -97,12 +97,12 @@ module decode(
   always @(*)
   begin
     case(q_instruction_code[15:12])
-      4'b0000 : writeEnableALU = 0;
-      4'b0001 : writeEnableALU = 1;
-      4'b0010 : writeEnableALU = 1;
-      4'b0011 : writeEnableALU = 1;
-      4'b0100 : writeEnableALU = 1; 
-      default : writeEnableALU = 0; //when we'll add the loads they'll need a write permision
+      4'b0000 : writeEnableALU <= 0;
+      4'b0001 : writeEnableALU <= 1;
+      4'b0010 : writeEnableALU <= 1;
+      4'b0011 : writeEnableALU <= 1;
+      4'b0100 : writeEnableALU <= 1; 
+      default : writeEnableALU <= 0; //when we'll add the loads they'll need a write permision
     endcase
   end
 
