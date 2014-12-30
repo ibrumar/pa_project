@@ -20,7 +20,7 @@ module memory
 */
 
     always @(*) begin : read_proc
-        data_read = mem[address];
+        data_read <= mem[address];
         //data_read_low = mem[address+1];
     end
 
