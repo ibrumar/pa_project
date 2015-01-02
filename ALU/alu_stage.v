@@ -7,6 +7,9 @@ module alu_stage(
   input [8:0] inmediate,
   
   //forward inputs
+  //data to STORE
+  input [15:0]dataReg,
+  input [1:0] ldSt_enable,
   input [2:0] destReg_addr,
   input       we,
   input [1:0] bp_input,
@@ -18,11 +21,13 @@ module alu_stage(
   input       reset,
   
   //outputs
-  output[15:0]alu_result,
-  output      OVF,
-  output[2:0] destReg_addr_output,
-  output      we_output,
-  output [1:0] bp_output
+  output[15:0]  alu_result,
+  output        OVF,
+  output[2:0]   destReg_addr_output,
+  output        we_output,
+  output [1:0]  bp_output,
+  output [15:0] dataReg_output,
+  output [1:0]  ldSt_enable_output
   
   );
   
@@ -31,15 +36,16 @@ module alu_stage(
   wire [15:0]mux_out__alu_in;
   wire [3:0] q_cop__alu_in;
   wire [8:0] q_inmediate__mux_b; 
-
+   
+  reg regB_sel;
   
-  register #(51) alu_register(
+  register #(69) alu_register(
     .clk(clk),
     .enable(enable_alu),
     .reset(reset),
-    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input}),
-    .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in,
-       destReg_addr_output, we_output, q_inmediate__mux_b, bp_output})
+    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg, ldSt_enable}),
+    .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in, destReg_addr_output, 
+        we_output, q_inmediate__mux_b, bp_output, dataReg_output, ldSt_enable_output})
   );
   
   
@@ -47,9 +53,7 @@ module alu_stage(
     .a(q_regB__mux_a),
     .b({ 7'b0000000, q_inmediate__mux_b}),
     .out(mux_out__alu_in),
-    //when cop == 0011 select b, otherwise select A
-    .sel((~q_cop__alu_in[3:3] & ~q_cop__alu_in[2:2])
-      &(q_cop__alu_in[1:1] & q_cop__alu_in[0:0]))
+    .sel(regB_sel)
   );
   
  
@@ -60,6 +64,19 @@ module alu_stage(
     .result(alu_result),
     .OVF(OVF)
   );
+  
+  
+  
+  always @(*)
+  begin
+    case (q_cop__alu_in)
+      //MOV, LD and ST uses the inmediate instead of regB
+      4'b0011, 4'b0110, 4'b0111: regB_sel<=1;
+      default:                   regB_sel<=0;
+      
+    endcase
+    
+  end
   
 
 endmodule

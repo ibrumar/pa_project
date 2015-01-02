@@ -18,6 +18,8 @@ wire block_pc;
 wire [15:0] regA;
 wire [15:0] regB;
 wire [3:0]  cop;
+wire [15:0] dataRegALU;
+wire [1:0]  ldSt_enableALU;
 wire [2:0]  destReg_addrALU;
 wire        writeEnableALU;
 wire [8:0]  inmediate;
@@ -25,12 +27,16 @@ wire [1:0]  bp_ALU;
 wire        clean_alu;
 
 //alu-TLB
+wire [15:0] dataRegTLB;
+wire [1:0]  ldSt_enableTLB;
 wire[15:0]  alu_resultTLB;
 wire [2:0]  destReg_addrTLB;
 wire        writeEnableTLB;
 wire [1:0]  bp_TLB;
 
 //TLB-CACHE
+wire [15:0] dataRegCACHE;
+wire [1:0]  ldSt_enableCACHE;
 wire[15:0]  tlb_resultCACHE;
 wire [2:0]  destReg_addrCACHE;
 wire        writeEnableCACHE;
@@ -95,6 +101,8 @@ decode my_decode(
 .inmed(inmediate),
 .bp_output(bp_ALU),
 .clean_alu(clean_alu),
+.dataReg(dataRegALU),
+.ldSt_enable(ldSt_enableALU),
   
 
 //inputs for BYPASS
@@ -130,6 +138,9 @@ alu_stage my_alu(
 .we(writeEnableALU),
 .inmediate(inmediate),
 .bp_input(bp_ALU),
+.dataReg(dataRegALU),
+.ldSt_enable(ldSt_enableALU),
+
 
 //common inputs
 .clk(clk),
@@ -141,8 +152,9 @@ alu_stage my_alu(
 .alu_result(alu_resultTLB),
 .destReg_addr_output(destReg_addrTLB),
 .we_output(writeEnableTLB),
-.bp_output(bp_TLB)
-
+.bp_output(bp_TLB),
+.dataReg_output(dataRegTLB),
+.ldSt_enable_output(ldSt_enableTLB)
 );
 
 
@@ -156,12 +168,16 @@ tlblookup_stage my_tlb(
 .destReg_addr_input(destReg_addrTLB),
 .we_input(writeEnableTLB),
 .bp_input(bp_TLB),
+.dataReg(dataRegTLB),
+.ldSt_enable(ldSt_enableTLB),
   
 //outputs
 .tlblookup_result(tlb_resultCACHE),
 .destReg_addr_output(destReg_addrCACHE),
 .we_output(writeEnableCACHE),
-.bp_output(bp_CACHE)
+.bp_output(bp_CACHE),
+.dataReg_output(dataRegCACHE),
+.ldSt_enable_output(ldSt_enableCACHE)
 );
 
 cache_stage my_cache(
@@ -175,6 +191,8 @@ cache_stage my_cache(
 .destReg_addr_input(destReg_addrCACHE),
 .we_input(writeEnableCACHE),
 .bp_input(bp_CACHE),
+.dataReg(dataRegCACHE),
+.ldSt_enable(ldSt_enableCACHE),
 
 //outputs
 .cache_result(cache_resultWB),

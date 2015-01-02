@@ -15,13 +15,20 @@ module decode(
   //bypass mux
   output [15:0]     regA,
   output [15:0]     regB,
+  
+  //data to store
+  output [15:0]     dataReg,
+  output reg [1:0] ldSt_enable,
+  
   //fixed
   output [3:0]      cop,
   output [2:0]      destReg_addr,
   output reg        writeEnableALU,
+
   //logic dependent
-  output [8:0]      inmed,
+  output reg[8:0]      inmed,
   output reg [1:0]  bp_output,
+
   //control
   output reg        clean_alu,
   
@@ -51,8 +58,8 @@ module decode(
   
 );
   
-  wire[2:0]    operating_a;
-  wire[2:0]    operating_b;
+  reg[2:0]    operating_a;
+  reg[2:0]    operating_b;
   wire [15:0]   q_instruction_code;
   wire [15:0]   regAWire;
   wire [15:0]   regBWire;
@@ -68,11 +75,13 @@ module decode(
   // maybe the ALU shouldn't see the instruction code  
   assign cop = q_instruction_code[15:12]; 
   assign destReg_addr = q_instruction_code[11:9];
-  assign inmed = q_instruction_code[8:0];
+
   // goes to FETCH. The other inputs to the PC have their source in fetch.
   assign branch_pc =regA; 
-  assign operating_a=q_instruction_code[8:6];
-  assign operating_b=q_instruction_code[2:0];
+  //data for STORE comes from regB
+  assign dataReg =regB; 
+
+
 
   register #(16) decode_register(
     .clk(clk),
@@ -136,11 +145,13 @@ module decode(
      end
      else begin
       sel_pc <= 2'b01;
+
+      //OPERATING A
       case(cop)
-        //ADD, SUB, CMP, BNZ
-        4'b0001, 4'b0010, 4'b0100, 4'b0101:
+        //ADD, SUB, CMP, BNZ, LD, ST
+        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0110, 4'b0111:
       
-          if(operating_a == destReg_addrALU)begin
+          if(operating_a == destReg_addrALU & bp_ALU!=2'b00)begin
             if(bp_ALU==2'b01)begin // result is at ALU
               sel_bypass_a<= 3'b001;
             end
@@ -153,7 +164,7 @@ module decode(
           end
         else 
           
-          if(operating_a == destReg_addrTLB)begin
+          if(operating_a == destReg_addrTLB & bp_TLB!=2'b00)begin
             if(bp_TLB==2'b01)begin // result is at TLB
               sel_bypass_a<= 3'b010;
             end
@@ -166,11 +177,11 @@ module decode(
           end
         else 
           
-          if(operating_a == destReg_addrCACHE)begin
+          if(operating_a == destReg_addrCACHE & bp_CACHE!=2'b00)begin
               sel_bypass_a<= 3'b011;
           end
         else
-          if(operating_a == destReg_addrWB)begin
+          if(operating_a == destReg_addrWB & bp_WB!=2'b00)begin
               sel_bypass_a<= 3'b100;
           end
         //NO BYPASS NEEDED
@@ -181,18 +192,89 @@ module decode(
                   sel_bypass_a<= 3'b000;
                   end
       endcase
+      
+      //OPERATING B
+      case(cop)
+        //ADD, SUB, CMP, BNZ
+        4'b0001, 4'b0010, 4'b0100, 4'b0101:
+      
+          if(operating_b == destReg_addrALU & bp_ALU!=2'b00)begin
+            if(bp_ALU==2'b01)begin // result is at ALU
+              sel_bypass_b<= 3'b001;
+            end
+            else if(bp_ALU==2'b10)begin //result is at CACHE
+              //stop pipeline and insert a bubble
+              enable_pc<=0;
+              enable_decode<=0;
+              clean_alu=1;
+            end
+          end
+        else 
+          
+          if(operating_b == destReg_addrTLB & bp_TLB!=2'b00)begin
+            if(bp_TLB==2'b01)begin // result is at TLB
+              sel_bypass_b<= 3'b010;
+            end
+            else if(bp_TLB==2'b10)begin //result is at CACHE
+              //stop pipeline and insert a bubble
+              enable_pc<=0;
+              enable_decode<=0;
+              clean_alu=1;
+            end
+          end
+        else 
+          
+          if(operating_b == destReg_addrCACHE & bp_CACHE!=2'b00)begin
+              sel_bypass_b<= 3'b011;
+          end
+        else
+          if(operating_b == destReg_addrWB & bp_WB!=2'b00)begin
+              sel_bypass_b<= 3'b100;
+          end
+        //NO BYPASS NEEDED
+        else
+          sel_bypass_b<= 3'b000;
+      
+        default : begin
+                  sel_bypass_b<= 3'b000;
+                  end
+      endcase
 
-     
 
      end
   end
 
+  //INSTRUCTION DETAILS
+  always @(*)
+  begin
+    sel_bypass_b<= 3'b000;
+    if(cop==4'b0110 | cop == 4'b0111)
+      inmed <= {3'b000, q_instruction_code[5:0]};
+    else
+      inmed <= q_instruction_code[8:0];
 
+    operating_a<=q_instruction_code[8:6];
+    case(cop)//cop
+      4'b0111 : begin //LOAD
+                  operating_b<=q_instruction_code[11:9];
+                  ldSt_enable<=2'b01;
+                end
+      4'b0110 : begin //STORE
+                  operating_b<=q_instruction_code[2:0];
+                  ldSt_enable<=2'b10;
+                end
+
+      default : begin 
+                  operating_b<=q_instruction_code[2:0];
+                  ldSt_enable<=2'b00;
+                end
+    endcase
+  end
+  
+  
   //TRACK type of instruction for BYPASS(bp bits)
   always @(*)
   begin
-   
-    sel_bypass_b<= 3'b000;
     case(q_instruction_code[15:12])//cop
       4'b0000 : bp_output <= 0;
       4'b0101 : bp_output <= 0;
@@ -214,7 +296,8 @@ module decode(
       4'b0011 : writeEnableALU = 1;
       4'b0100 : writeEnableALU = 1; 
       4'b0110 : writeEnableALU = 1;       
-      default : writeEnableALU = 0; //when we'll add the loads they'll need a write permision
+      4'b0111 : writeEnableALU = 0;       
+      default : writeEnableALU = 1'bx; 
     endcase
   end
 
