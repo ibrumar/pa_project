@@ -177,7 +177,16 @@ tlblookup_stage my_tlb(
 .we_output(writeEnableCACHE),
 .bp_output(bp_CACHE),
 .dataReg_output(dataRegCACHE),
-.ldSt_enable_output(ldSt_enableCACHE)
+.ldSt_enable_output(ldSt_enableCACHE),
+
+//from CACHE
+.cache_result(cache_resultWB),
+.destReg_addrCACHE(destReg_addrWB),
+
+//from WB
+.wb_result(wb_resultDECODE),
+.destReg_addrWB(destReg_addrDECODE)
+
 );
 
 cache_stage my_cache(

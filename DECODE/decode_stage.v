@@ -21,7 +21,7 @@ module decode(
   output reg [1:0] ldSt_enable,
   
   //fixed
-  output [3:0]      cop,
+  output reg [3:0]      cop,
   output [2:0]      destReg_addr,
   output reg        writeEnableALU,
 
@@ -73,7 +73,7 @@ module decode(
   
   
   // maybe the ALU shouldn't see the instruction code  
-  assign cop = q_instruction_code[15:12]; 
+  //assign cop = q_instruction_code[15:12]; 
   assign destReg_addr = q_instruction_code[11:9];
 
   // goes to FETCH. The other inputs to the PC have their source in fetch.
@@ -133,13 +133,11 @@ module decode(
   //BYPASSES
   always @(*)
   begin
-     
-     clean_instruction_code=0;
      clean_alu=0;
      bypass_stop_b=0;
      enable_decode<=1;
      enable_pc<= 1;
-     
+     cop<=q_instruction_code[15:12];
      if (reset == 0)begin
       sel_pc <= 2'b00; //select the initial address if we're in reset
      end
@@ -150,16 +148,18 @@ module decode(
       case(cop)
         //ADD, SUB, CMP, BNZ, LD, ST
         4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0110, 4'b0111:
-      
+          //if operating b is in ALU and is NOT a NOP
           if(operating_a == destReg_addrALU & bp_ALU!=2'b00)begin
             if(bp_ALU==2'b01)begin // result is at ALU
               sel_bypass_a<= 3'b001;
+              $display("HERE opA, bpAlu=1, cop: %d, opa= %d, opb=%d", cop, operating_a, operating_b);
             end
-            else if(bp_ALU==2'b10)begin //result is at CACHE
+            else if(bp_ALU==2'b10)begin //result will be at CACHE
               //stop pipeline and insert a bubble
               enable_pc<=0;
               enable_decode<=0;
               clean_alu=1;
+              $display("HERE opA, bpAlu=2");
             end
           end
         else 
@@ -167,27 +167,32 @@ module decode(
           if(operating_a == destReg_addrTLB & bp_TLB!=2'b00)begin
             if(bp_TLB==2'b01)begin // result is at TLB
               sel_bypass_a<= 3'b010;
+              $display("HERE opA, bpTLB=1");
             end
             else if(bp_TLB==2'b10)begin //result is at CACHE
               //stop pipeline and insert a bubble
               enable_pc<=0;
               enable_decode<=0;
               clean_alu=1;
+              $display("HERE opA, bpTLB=2");
             end
           end
         else 
           
           if(operating_a == destReg_addrCACHE & bp_CACHE!=2'b00)begin
               sel_bypass_a<= 3'b011;
+                            $display("HERE opA, bpCACHE");
           end
         else
           if(operating_a == destReg_addrWB & bp_WB!=2'b00)begin
               sel_bypass_a<= 3'b100;
+                        $display("HERE opA, bpWB");
           end
         //NO BYPASS NEEDED
-        else
+        else begin
           sel_bypass_a<= 3'b000;
-      
+          $display("HERE opA, NO BP");
+        end
         default : begin
                   sel_bypass_a<= 3'b000;
                   end
@@ -195,18 +200,19 @@ module decode(
       
       //OPERATING B
       case(cop)
-        //ADD, SUB, CMP, BNZ
-        4'b0001, 4'b0010, 4'b0100, 4'b0101:
-      
+        //ADD, SUB, CMP, BNZ, ST
+        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0111:
           if(operating_b == destReg_addrALU & bp_ALU!=2'b00)begin
             if(bp_ALU==2'b01)begin // result is at ALU
               sel_bypass_b<= 3'b001;
+              $display("HERE opB, bpALU=1, cop: %d", cop);              
             end
-            else if(bp_ALU==2'b10)begin //result is at CACHE
+            else if(bp_ALU==2'b10 & cop !=4'b0111)begin //result is at CACHE
               //stop pipeline and insert a bubble
               enable_pc<=0;
               enable_decode<=0;
               clean_alu=1;
+              $display("HERE opB, bpALU=2");                            
             end
           end
         else 
@@ -214,27 +220,32 @@ module decode(
           if(operating_b == destReg_addrTLB & bp_TLB!=2'b00)begin
             if(bp_TLB==2'b01)begin // result is at TLB
               sel_bypass_b<= 3'b010;
+                  $display("HERE opB, bpTLB=1");              
             end
-            else if(bp_TLB==2'b10)begin //result is at CACHE
+            else if(bp_TLB==2'b10 & cop !=4'b0111)begin //result is at CACHE
               //stop pipeline and insert a bubble
               enable_pc<=0;
               enable_decode<=0;
               clean_alu=1;
+              $display("HERE opB, bpTLB=2");                            
             end
           end
         else 
           
           if(operating_b == destReg_addrCACHE & bp_CACHE!=2'b00)begin
               sel_bypass_b<= 3'b011;
+              $display("HERE opB, bpCACHE");                            
           end
         else
           if(operating_b == destReg_addrWB & bp_WB!=2'b00)begin
               sel_bypass_b<= 3'b100;
+              $display("HERE opB, WB");              
           end
         //NO BYPASS NEEDED
-        else
+        else begin
           sel_bypass_b<= 3'b000;
-      
+          $display("HERE opB, NO BP");                        
+        end
         default : begin
                   sel_bypass_b<= 3'b000;
                   end
@@ -247,7 +258,7 @@ module decode(
   //INSTRUCTION DETAILS
   always @(*)
   begin
-    sel_bypass_b<= 3'b000;
+    clean_instruction_code=0;
     if(cop==4'b0110 | cop == 4'b0111)
       inmed <= {3'b000, q_instruction_code[5:0]};
     else
@@ -255,20 +266,45 @@ module decode(
 
     operating_a<=q_instruction_code[8:6];
     case(cop)//cop
-      4'b0111 : begin //LOAD
+      4'b0101 : begin //BRANCH
+                  //if needed to branch  
+                  operating_b<=q_instruction_code[2:0];
+                  $display("regB: %d", regB);
+                  if(regB==16'b0000000000000000)begin
+                    $display("regB = 0");
+                    sel_pc<=2'b01;
+                    clean_instruction_code<=0;      
+                    clean_alu<=0;                                  
+                  end
+                  else begin
+                    $display("regB != 0");
+                    sel_pc<=2'b10;
+                    clean_instruction_code<=1;
+                    clean_alu<=1;                    
+                  end
+                  
+                end
+      4'b0111 : begin //STORE
                   operating_b<=q_instruction_code[11:9];
                   ldSt_enable<=2'b01;
                 end
-      4'b0110 : begin //STORE
+      4'b0110 : begin //LOAD
                   operating_b<=q_instruction_code[2:0];
                   ldSt_enable<=2'b10;
                 end
 
       default : begin 
+                  $display("HERE, cop= %d", cop);
                   operating_b<=q_instruction_code[2:0];
                   ldSt_enable<=2'b00;
                 end
     endcase
+  end
+  
+  //DEBUG
+  always @(*)
+  begin
+    $display("HERE!, cop= %d", cop);
   end
   
   
@@ -295,6 +331,8 @@ module decode(
       4'b0010 : writeEnableALU = 1;
       4'b0011 : writeEnableALU = 1;
       4'b0100 : writeEnableALU = 1; 
+      4'b0100 : writeEnableALU = 0; 
+      4'b0101 : writeEnableALU = 0; 
       4'b0110 : writeEnableALU = 1;       
       4'b0111 : writeEnableALU = 0;       
       default : writeEnableALU = 1'bx; 

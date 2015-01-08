@@ -2,6 +2,20 @@ MOV R1 10
 LD R2 R1 5
 ADD R3 R2 R1
 SUB R4 R1 R2
-CMP R5 R1 R2
+MOV R5 9
 CMP R1 R0 R7
+
+#bypass opA(R1) from ALU 
 ST R2 R1 6
+
+#bypass opA from MEM -> need to stop
+LD R0 R1 3
+ST R7 R0 4
+
+#bypass opbB from ALU
+MOV R4 9
+ST R4 R1 6
+
+#bypass opB from MEM -> dont need to stop
+LD R5 R1 2
+ST R5 R1 6
