@@ -101,8 +101,9 @@ module decode(
 );
 
 //ddavila: MUXs for BYPASS
-
-  mux5 mux_bypass_a(
+assign out_bypass_a = regAWire;
+assign out_bypass_b = regBWire;
+/*  mux5 mux_bypass_a(
   .a(regAWire),
   .b(alu_result),
   .c(tlblookup_result),
@@ -120,7 +121,7 @@ module decode(
   .e(wb_result),
   .sel(sel_bypass_b),
   .out(out_bypass_b)
-  );  
+  );  */
 
   //FETCH PC Control
   always @(*)
