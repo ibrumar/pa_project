@@ -21,7 +21,7 @@ module memory
     //the addresses in memory aren't conceptually at word level
     //they should be at {tag, line} level. We simulate this with 
     //the following variable.
-    wire [addr_width-1:0] memoryAddress = {address[addr_width-1:4], 4'b0000};
+    wire [addr_width-1:0] memoryAddress = {address[addr_width-1:4], 4'b0000}; // this should be ..-1:5
 /*    always @(posedge clk) begin : write_proc
         if (we == 1)begin
             mem[address] = data_write_high;

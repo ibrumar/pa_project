@@ -34,7 +34,7 @@ module instr_cache
 
    assign addrToArb = address;
    wire canWriteCache = !isHit && memServiceReady && petFromProc;
-   wire [num_cache_lines-1:0] canWriteExtended = {num_cache_lines{canWriteCache}};
+   wire [num_cache_lines-1:0] canWriteExtended = num_cache_lines{canWriteCache};
    reg [num_cache_lines-1:0] decodedLine; //decoder
    wire [num_cache_lines-1:0] enableBits = canWriteExtended&decodedLine;
 
@@ -52,7 +52,7 @@ module instr_cache
                                     
    
   //TAGS
-  wire [addr_width-7:0] tagCables [0:num_cache_lines-1];
+  wire [addr_width-7:0] tagCables [0:num_cache_lines-1]; //less tag cables. it should be an -8
   wire [addr_width-7:0] selectedTagCables = tagCables[address[5:4]];
 
   always @(*)
@@ -109,7 +109,8 @@ module instr_cache
 
 
 
-  assign isHit = validLine && (selectedTagCables == address[addr_width-1:6]);
+  //assign isHit = validLine && (selectedTagCables == address[addr_width-1:6]);
+  assign isHit = validLine && (selectedTagCables == address[addr_width-1:7]);
 
   assign petitionToArb = !isHit && petFromProc;
 
