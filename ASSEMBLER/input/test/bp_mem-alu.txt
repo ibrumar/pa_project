@@ -16,6 +16,12 @@ ST R7 R0 4
 MOV R4 9
 ST R4 R1 6
 
-#bypass opB from MEM -> dont need to stop
-LD R5 R1 2
-ST R5 R1 6
+#bypass opA from ALU,  opB from MEM -> need to stop
+MOV R5 20
+LD R4 R1 5
+ST R4 R5 6
+
+#bypass opA from MEM,  opB from MEM -> need to stop
+LD R2 R1 9
+LD R3 R1 8
+ST R2 R3 7

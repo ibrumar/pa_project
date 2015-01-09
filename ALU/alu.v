@@ -29,6 +29,7 @@ always @(*)
                   result_aux=0;
                 end
       //just to test
+      4'b0101 : result_aux=0;
       4'b0110 : result_aux= aux_reg_A + aux_reg_B; 
       4'b0111 : result_aux= aux_reg_A + aux_reg_B; 
       default : result_aux= 16'hx;
