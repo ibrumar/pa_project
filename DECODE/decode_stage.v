@@ -83,7 +83,7 @@ module decode(
   assign destReg_addr = q_instruction_code[11:9];
 
   // goes to FETCH. The other inputs to the PC have their source in fetch.
-  assign branch_pc =regA; 
+  assign branch_pc =regB; 
   //data for STORE comes from regB
   assign dataReg =regB; 
 
@@ -330,7 +330,7 @@ module decode(
                   operating_b<=q_instruction_code[2:0];
                   ldSt_enable<=2'b00;
                   $display("regB: %d", regB);
-                  if(regB==16'b0000000000000000)begin
+                  if(regA==16'b0000000000000000)begin
                     $display("regB = 0");
                     sel_pc<=2'b01;
                     clean_instruction_code<=0;      
