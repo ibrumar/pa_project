@@ -9,7 +9,7 @@ always @(*)
 begin
   if (writeEnable == 0)
     begin
-      q = 2'h00;
+      q = 8'h00;
     end
   else
     begin

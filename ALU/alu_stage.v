@@ -1,4 +1,8 @@
 module alu_stage(
+  //common inputs
+  input       clk,
+  input       enable_alu,
+  input       reset,
   
   //inputs from decode
   input [15:0]regA,
@@ -7,18 +11,13 @@ module alu_stage(
   input [8:0] inmediate,
   
   //forward inputs
-  //data to STORE
   input [15:0]dataReg,
   input [1:0] ldSt_enable,
   input [2:0] destReg_addr,
+
   input       we,
   input [1:0] bp_input,
-  
-  
-  //common inputs
-  input       clk,
-  input       enable_alu,
-  input       reset,
+  input [2:0] tail_rob_input,
   
   //outputs
   output[15:0]  alu_result,
@@ -27,7 +26,8 @@ module alu_stage(
   output        we_output,
   output [1:0]  bp_output,
   output [15:0] dataReg_output,
-  output [1:0]  ldSt_enable_output
+  output [1:0]  ldSt_enable_output,
+  output [2:0]tail_rob_output
   
   );
   
@@ -39,13 +39,15 @@ module alu_stage(
    
   reg regB_sel;
   
-  register #(69) alu_register(
+  register #(72) alu_register(
     .clk(clk),
     .enable(enable_alu),
     .reset(reset),
-    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg, ldSt_enable}),
-    .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in, destReg_addr_output, 
-        we_output, q_inmediate__mux_b, bp_output, dataReg_output, ldSt_enable_output})
+    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg,
+       ldSt_enable, tail_rob_input}),
+    .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in, destReg_addr_output,
+       we_output, q_inmediate__mux_b, bp_output, dataReg_output, 
+       ldSt_enable_output, tail_rob_output})
   );
   
   

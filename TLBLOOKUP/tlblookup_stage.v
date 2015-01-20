@@ -11,6 +11,7 @@ module tlblookup_stage(
   input[2:0]  destReg_addr_input,
   input       we_input,
   input [1:0] bp_input,
+  input [2:0] tail_rob_input,
   
   output[15:0]  tlblookup_result,
   output[2:0]   destReg_addr_output,
@@ -18,6 +19,7 @@ module tlblookup_stage(
   output [1:0]  bp_output,
   output[15:0]  dataReg_output,
   output[1:0]   ldSt_enable_output,
+  output [2:0]  tail_rob_output,
   
   //BYPASSES
   //inputs from CACHE
@@ -41,15 +43,15 @@ module tlblookup_stage(
   .out(dataReg_output)
   );
 
-  register #(40) tlblookup_register(
+  register #(43) tlblookup_register(
     .clk(clk),
     .enable(enable_tlblookup),
     .reset(reset),
     .d({alu_result, destReg_addr_input, we_input, bp_input,
-     dataReg, ldSt_enable}),
+     dataReg, ldSt_enable, tail_rob_input}),
        
     .q({tlblookup_result, destReg_addr_output, we_output, bp_output,
-        q_dataReg, ldSt_enable_output})
+        q_dataReg, ldSt_enable_output, tail_rob_output})
   );
   
   always @(*)
