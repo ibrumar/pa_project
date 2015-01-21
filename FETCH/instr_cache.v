@@ -34,7 +34,7 @@ module instr_cache
 
    assign addrToArb = address;
    wire canWriteCache = !isHit && memServiceReady && petFromProc;
-   wire [num_cache_lines-1:0] canWriteExtended = num_cache_lines{canWriteCache};
+   wire [num_cache_lines-1:0] canWriteExtended = {canWriteCache, canWriteCache, canWriteCache, canWriteCache};
    reg [num_cache_lines-1:0] decodedLine; //decoder
    wire [num_cache_lines-1:0] enableBits = canWriteExtended&decodedLine;
 

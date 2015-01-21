@@ -1,9 +1,34 @@
-module proc(
+module proc
+     #(parameter cache_line_width = 256,
+      parameter word_width = 16,
+      //in the data cache we will access not only
+      //data with width 'word_width'
+      parameter addr_width = 16,
+      parameter num_cache_lines = 4)
+
+(
   input clk,
   input reset,
   input enable_pc_external,
   input test
 );
+
+//memory-oriented wires
+
+   //arb,memory-instr-cache
+wire                        serviceReadyArbCache;
+wire [cache_line_width-1:0] dataMemCache;
+wire [addr_width-1:0]       addrCacheArb;
+   //memory-arb
+wire                        serviceReadyMemArb;
+wire                        petitionArbMem;
+wire [addr_width-1:0]       addressArbMem;
+wire                        petitionCacheArb;
+
+//arb, memory, data-cache
+
+wire [cache_line_width-1:0] dataCacheMem;
+wire                        blockAluDecodeFetch;
 
 //fetch-decode
 wire [15:0] inst_code;
@@ -12,7 +37,7 @@ wire [15:0] inst_code;
 wire [1:0]  sel_pc;     
 wire [15:0] branch_pc_addr;
 //bypass block
-wire block_pc;
+wire enableFetchFromDecode;
 
 //decode-alu
 wire [15:0] regA;
@@ -42,6 +67,11 @@ wire [2:0]  destReg_addrCACHE;
 wire        writeEnableCACHE;
 wire [1:0]  bp_CACHE;
 
+wire        petitionToData,
+wire [3:0]  lineIdData,
+wire        writeEnableData,
+
+
 //CACHE-WB
 wire[15:0]  cache_resultWB;
 wire [2:0]  destReg_addrWB;
@@ -54,13 +84,28 @@ wire [2:0]  destReg_addrDECODE;
 wire        writeEnableDECODE;
 wire [1:0]  bp_DECODE;
 
+//ARB-TLB
+wire serviceReadyArbTlb;
+wire petitionTlbArb;
+wire addrTlbArb;
+wire weTlbArb;
 
 fetch my_fetch(
 //common inputs
 .clk(clk),                      
-.enable_pc(block_pc & enable_pc_external),
+//blockAluDecodeFetch comes from TLB and means that a cache miss
+//has happened -> therefore we must block -> enable = 0
+//enableFetchFromDecode == 0 when some bypass cannot be satisfied to the decode
+//stage
+.enable_pc(enableFetchFromDecode & enable_pc_external & !blockAluDecodeFetch),
 .reset(reset),                //Not necessary by this moment
 
+//memory stuff
+
+.serviceReadyArbCache(serviceReadyArbCache),
+.dataMemCache(dataMemCache),
+.addrCacheArb(addrCacheArb),
+.petitionCacheArb(petitionCacheArb),
 //fixed input
 .initial_inst_addr(16'h000c),  //fixed initial instruction address
 
@@ -72,11 +117,39 @@ fetch my_fetch(
 .inst_code(inst_code)
 );
 
+//memory and arbiter accessed by fetch and tlblookup
+
+
+arbiter my_arbiter
+     (.addressInstr(addrCacheArb),
+      .addressDat(addrTlbArb),
+      .petitionInstr(petitionCacheArb),
+      .petitionDat(petitionTlbArb),
+      .serviceReady(serviceReadyMemArb),
+      .serviceReadyInstr(serviceReadyArbCache),
+      .serviceReadyDat(serviceReadyArbTlb),
+      .petitionMem(petitionArbMem),
+      .addressMem(addressArbMem)
+      );
+
+
+
+memory my_memory
+     (.address(addressArbMem),
+      .data_write(dataCacheMem),
+      .clk(clk),
+      .we(weTlbArb),
+      .reset(reset),
+      .petition(petitionArbMem),
+      .serviceReady(serviceReadyMemArb),
+      //output reg [data_width-1:0] data_read_high,
+      .data_read(dataMemCache));
 
 decode my_decode(
 //common inputs
 .clk(clk),   //the clock is the same for ev.
 .reset(reset), //the reset is the same for everyone
+.externalEnable(blockAluDecodeFetch),
 
 //inputs from FETCH
 .instruction_code(inst_code),
@@ -90,7 +163,7 @@ decode my_decode(
 //output to fetch
 .sel_pc(sel_pc),              //pc selection for fetch stage
 .branch_pc(branch_pc_addr),        //where fetch should jump if branch done 
-.enable_pc(block_pc),
+.enable_pc(enableFetchFromDecode),
 
 //outputs to alu
 .regA(regA),
@@ -144,7 +217,7 @@ alu_stage my_alu(
 
 //common inputs
 .clk(clk),
-.enable_alu(1'b1),
+.enable_alu(!blockAluDecodeFetch),
 .reset(reset & ~clean_alu),
 
 //outputs
@@ -158,10 +231,13 @@ alu_stage my_alu(
 );
 
 
+
 tlblookup_stage my_tlb(
 .clk(clk),
 .enable_tlblookup(1'b1),
 .reset(reset),
+
+.blockPreviousStages(blockAluDecodeFetch),
 
 //inputs
 .alu_result(alu_resultTLB),
@@ -179,6 +255,16 @@ tlblookup_stage my_tlb(
 .dataReg_output(dataRegCACHE),
 .ldSt_enable_output(ldSt_enableCACHE),
 
+.petitionToData(petitionToData),
+.lineIdData(lineIdData),
+.writeEnableData(writeEnableData),
+
+//ARB-TLB
+.serviceReadyArbTlb(serviceReadyArbTlb);
+.petitionTlbArb(petitionTlbArb);
+.addrTlbArb(addrTlbArb);
+.weTlbArb(weTlbArb)
+
 //from CACHE
 .cache_result(cache_resultWB),
 .destReg_addrCACHE(destReg_addrWB),
@@ -195,6 +281,11 @@ cache_stage my_cache(
 .enable_cache(1'b1),
 .reset(reset),
 
+//communication with mem
+
+.dataWrittenToMem(dataCacheMem),
+
+.dataReadFromMem(dataMemCache),
 //inputs
 .tlb_result(tlb_resultCACHE),
 .destReg_addr_input(destReg_addrCACHE),

@@ -21,7 +21,7 @@ module memory
     //the addresses in memory aren't conceptually at word level
     //they should be at {tag, line} level. We simulate this with 
     //the following variable.
-    wire [addr_width-1:0] memoryAddress = {address[addr_width-1:4], 4'b0000}; // this should be ..-1:5
+    wire [addr_width-1:0] memoryAddress = {address[addr_width-1:4], 4'b0000}; 
 /*    always @(posedge clk) begin : write_proc
         if (we == 1)begin
             mem[address] = data_write_high;
@@ -86,6 +86,24 @@ module memory
       begin
         serviceReady <= 1'b0;
         enable_output_register <= 1'b1;
+        if (we) begin
+          mem[memoryAddress][15:0] <= data_write[15:0];
+          mem[memoryAddress][31:16] <= data_write[31:16];
+          mem[memoryAddress][47:32] <= data_write[47:32];
+          mem[memoryAddress][63:48] <= data_write[63:48];
+          mem[memoryAddress][79:64] <= data_write[79:64];
+          mem[memoryAddress][95:80] <= data_write[95:80];
+          mem[memoryAddress][111:96] <= data_write[111:96];
+          mem[memoryAddress][127:112] <= data_write[127:112];
+          mem[memoryAddress][143:128] <= data_write[143:128];
+          mem[memoryAddress][159:144] <= data_write[159:144];
+          mem[memoryAddress][175:160] <= data_write[175:160];
+          mem[memoryAddress][191:176] <= data_write[191:176];
+          mem[memoryAddress][207:192] <= data_write[207:192];
+          mem[memoryAddress][223:208] <= data_write[223:208];
+          mem[memoryAddress][239:224] <= data_write[239:224];
+          mem[memoryAddress][255:240] <= data_write[255:240];
+        end
       end
       three:
       begin
