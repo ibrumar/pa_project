@@ -92,6 +92,19 @@ def translate_items(items):
         code+=translate_register(items[2])
         number=convert_number(items[3]).zfill(6) #inmediate
         code+=number
+    elif(cop=="LDW"):
+        code="1110"
+        code+=translate_register(items[1])
+        code+=translate_register(items[2])
+        number=convert_number(items[3]).zfill(6) #inmediate
+        code+=number
+    elif(cop=="STW"):
+        code="1111"
+        code+=translate_register(items[1])
+        code+=translate_register(items[2])
+        number=convert_number(items[3]).zfill(6) #inmediate
+        code+=number
+
     else:
         print "ERROR: instruction unknown: "
         print items

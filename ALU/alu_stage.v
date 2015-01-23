@@ -5,6 +5,7 @@ module alu_stage(
   input [15:0]regB,
   input [3:0] cop,
   input [8:0] inmediate,
+  input       word_access_from_decode,
   
   //forward inputs
   //data to STORE
@@ -27,8 +28,8 @@ module alu_stage(
   output        we_output,
   output [1:0]  bp_output,
   output [15:0] dataReg_output,
-  output [1:0]  ldSt_enable_output
-  
+  output [1:0]  ldSt_enable_output,
+  output        word_access
   );
   
   wire [15:0]q_regA__alu_in;
@@ -38,14 +39,15 @@ module alu_stage(
   wire [8:0] q_inmediate__mux_b; 
    
   reg regB_sel;
-  
-  register #(69) alu_register(
+ 
+  //sumo 1 para el word access
+  register #(70) alu_register(
     .clk(clk),
     .enable(enable_alu),
     .reset(reset),
-    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg, ldSt_enable}),
+    .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg, ldSt_enable, word_access_from_decode}),
     .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in, destReg_addr_output, 
-        we_output, q_inmediate__mux_b, bp_output, dataReg_output, ldSt_enable_output})
+        we_output, q_inmediate__mux_b, bp_output, dataReg_output, ldSt_enable_output, word_access})
   );
   
   
@@ -65,13 +67,14 @@ module alu_stage(
     .OVF(OVF)
   );
   
-  
+ 
+
   
   always @(*)
   begin
     case (q_cop__alu_in)
       //MOV, LD and ST uses the inmediate instead of regB
-      4'b0011, 4'b0110, 4'b0111: regB_sel<=1;
+      4'b0011, 4'b0110, 4'b0111, 4'b1111, 4'b1110: regB_sel<=1;
       default:                   regB_sel<=0;
       
     endcase

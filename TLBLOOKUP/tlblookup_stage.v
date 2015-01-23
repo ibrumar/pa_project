@@ -21,19 +21,20 @@ module tlblookup_stage
   input[2:0]  destReg_addr_input,
   input       we_input,
   input [1:0] bp_input,
+  input       word_access_from_alu,
   
   //address where the access is made
   output[15:0]  tlblookup_result,
   output[2:0]   destReg_addr_output,
-  output        we_output,
-  output [1:0]  bp_output,
+  output reg       we_output,
+  output reg [1:0]  bp_output,
   output[15:0]  dataReg_output,
-  output[1:0]   ldSt_enable_output,
+  output reg [1:0]   ldSt_enable_output,
   
   //Ouputs directly to CACHE (without register)
   output                  petitionToData,
 
-  output [num_cache_lines-1:0] lineIdData,
+  output [1:0]            lineIdData,
   output                  writeEnableData,
 
   
@@ -41,25 +42,28 @@ module tlblookup_stage
 
   input serviceReadyArbTlb,
   output petitionTlbArb,
-  output addrTlbArb,
+  output [addr_width-1:0] addrTlbArb,
   output weTlbArb,
+  output wordAccess,
 
 
   //BYPASSES
   //inputs from CACHE
   input[2:0]destReg_addrCACHE,
   input[15:0]cache_result,
+  input[1:0] bp_from_cache,
 
   //inputs from WB
   input[2:0]destReg_addrWB,
-  input[15:0]wb_result
+  input[15:0]wb_result,
+  input[1:0] bp_from_wb
 
   );
 
   wire we_output_aux;
-  wire bp_output_aux;
-  wire ldSt_enable_output_aux;
-  wire enable_tlblookup_internal;
+  wire [1:0] bp_output_aux;
+  wire [1:0] ldSt_enable_output_aux;
+  reg enable_tlblookup_internal;
 
   wire [15:0]q_dataReg;
   reg [1:0]sel_bypass;
@@ -74,12 +78,11 @@ module tlblookup_stage
   );
 
 
-  wire is_load = ldSt_enable_output[0];
-  wire is_store = ldSt_enable_output[1];
+  wire is_load = ldSt_enable_output_aux[1];
+  wire is_store = ldSt_enable_output_aux[0];
   wire is_mem_access = is_load || is_store;
   wire is_hit;
 
-  assign weTlbArb = is_store;
   assign blockPreviousStages = !is_hit && is_mem_access;
 
 
@@ -94,7 +97,7 @@ module tlblookup_stage
   .clk(clk),
   .reset(reset),
   .petFromProc(is_mem_access),
-  .wordPetition(0),
+  .wordPetition(wordAccess),
   .we(is_store),
 
   .memServiceReady(serviceReadyArbTlb),
@@ -104,6 +107,7 @@ module tlblookup_stage
   //output to arbitrer
   .addrToArb(addrTlbArb),
   .petitionToArb(petitionTlbArb),
+  .evictionPetToMem(weTlbArb),
   //the processor will directly plug in the write petition to the memory if the operation in tlblookup is a store.
 
   .petitionToData(petitionToData),
@@ -113,15 +117,15 @@ module tlblookup_stage
   );
 
 
-  register #(40) tlblookup_register(
+  register #(41) tlblookup_register(
   .clk(clk),
   .enable(enable_tlblookup_internal),
   .reset(reset),
   .d({alu_result, destReg_addr_input, we_input, bp_input,
-   dataReg, ldSt_enable}),
+   dataReg, ldSt_enable, word_access_from_alu}),
      
   .q({tlblookup_result, destReg_addr_output, we_output_aux, bp_output_aux,
-      q_dataReg, ldSt_enable_output_aux})
+      q_dataReg, ldSt_enable_output_aux, wordAccess})
   );
 
   //Blocking current and previous stages
@@ -146,10 +150,10 @@ module tlblookup_stage
       //BYPASS
       case(ldSt_enable_output)
         //ST
-        2'b01:
-          if(destReg_addr_output == destReg_addrCACHE)
+        2'b01: //si hay store en tlb
+          if(destReg_addr_output == destReg_addrCACHE && bp_from_cache == 2) //y el registro destino es el mismo que el de cache
               sel_bypass<= 2'b01;
-          else if(destReg_addr_output == destReg_addrWB)
+          else if(destReg_addr_output == destReg_addrWB && bp_from_wb == 2)
                 sel_bypass<= 2'b10;
           else
                 sel_bypass<= 2'b00;

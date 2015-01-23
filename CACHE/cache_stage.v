@@ -1,4 +1,13 @@
-module cache_stage(
+module cache_stage
+  #(parameter cache_line_width = 256,
+  parameter word_width = 16,
+  parameter byte_width = 8,
+  //in the data cache we will access not only
+  //data with width 'word_width'
+  parameter addr_width = 16,
+  parameter num_cache_lines = 4,
+  parameter num_bytes_per_line = 32)
+(
   
   input       clk,
   input       enable_cache,
@@ -8,10 +17,10 @@ module cache_stage(
   input[1:0]  ldSt_enable,
  
   //Inputs directly from TLBLOOKUP (don't use registers on those wires)
-  input                  petitionFromTlb,
+  input                       petitionFromTlb,
 
-  input [num_cache_lines-1:0] lineIdFromTlb,
-  output                  writeEnableFromTlb,
+  input [1:0] lineIdFromTlb,
+  input                       writeEnableFromTlb,
 
   //Communication with memory (managed by tlb stage)
   output [cache_line_width-1:0]  dataWrittenToMem,
@@ -25,36 +34,35 @@ module cache_stage(
   input      we_input,
   input [1:0] bp_input,
  
-  //inputs that should not be passed throught stage's register.
-  //they come form tlblookup
+  input       word_access_from_tlb,
 
   output reg [15:0]cache_result,
   output[2:0] destReg_addr_output,
   output     we_output,
-  output [1:0] bp_output
-  
+  output [1:0] bp_output,
+  output      word_access 
   );
   
   wire [15:0] dataReg_output;
   wire [15:0] dataAddr;
   wire [1:0]  ldSt_enable_output;
  
-  wire is_load = ldSt_enable_output[0];
-  wire is_store = ldSt_enable_output[1];
+  wire is_load = ldSt_enable_output[1];
+  wire is_store = ldSt_enable_output[0];
   wire is_mem_access = is_load || is_store;
 
   //cache outputs
-  wire [word_width-1:0] byte0, //byte corresponding to loadw byte 0 or loadb
-  wire [word_width-1:0] byte1, //byte corresponding to loadw byte 1
+  wire [byte_width-1:0] byte0; //byte corresponding to loadw byte 0 or loadb
+  wire [byte_width-1:0] byte1; //byte corresponding to loadw byte 1
 
-  register #(40) cache_register(
+  register #(41) cache_register(
     .clk(clk),
     .enable(enable_cache),
     .reset(reset),
     .d({tlb_result, destReg_addr_input, we_input, bp_input, dataReg,
-      ldSt_enable}),
+      ldSt_enable, word_access_from_tlb}),
     .q({dataAddr, destReg_addr_output, we_output, bp_output,
-      dataReg_output, ldSt_enable_output})
+      dataReg_output, ldSt_enable_output, word_access})
   );
   
   always @(*) begin
@@ -66,7 +74,7 @@ module cache_stage(
     end
   end
 
-   data_cache 
+   data_cache my_data_cache 
    (
    .address(dataAddr),
    .clk(clk),
@@ -74,7 +82,7 @@ module cache_stage(
    .petFromProc(is_mem_access),
    .dataToStore(dataReg_output),
    .accessIsStore(is_store),
-   .isWordAccess(1'b0),
+   .isWordAccess(word_access),
 
    //output to processor
    .byte0(byte0), 

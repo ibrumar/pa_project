@@ -6,6 +6,7 @@ module decode(
   
   //inputs from fetch
   input[15:0]instruction_code,
+  //from wb
   
   //fetch outputs
   output reg [1:0]  sel_pc,   //pc selection for fetch stage
@@ -20,6 +21,7 @@ module decode(
   //data to store
   output [15:0]     dataReg,
   output reg [1:0] ldSt_enable,
+  output reg       wordAccess,
   
   //fixed
   output reg [3:0]      cop,
@@ -49,6 +51,7 @@ module decode(
   input[1:0] bp_CACHE,
 
   //inputs from WB
+  input       word_access_from_wb,
   input[2:0]destReg_addrWB,
   input[15:0]wb_result,
   input[1:0] bp_WB,
@@ -132,7 +135,16 @@ assign out_bypass_b = regBWire;
   .out(regB)
   );  
 
-  
+  always @(*)
+  begin
+    case (cop)
+      4'b1110, 4'b1111:
+         wordAccess <= 1'b1;
+      default:
+         wordAccess <= 1'b0;
+    endcase
+  end 
+
   //BYPASSES
   always @(*)
   begin
@@ -149,8 +161,8 @@ assign out_bypass_b = regBWire;
 
       //OPERATING A
       case(cop)
-        //ADD, SUB, CMP, BNZ, LD, ST
-        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0110, 4'b0111:
+        //ADD, SUB, CMP, BNZ, LD, LDW, ST, STW
+        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0110, 4'b1110, 4'b0111, 4'b1111:
           //if operating b is in ALU and is NOT a NOP
           if(operating_a == destReg_addrALU & bp_ALU!=2'b00)begin
             if(bp_ALU==2'b01)begin // result is at ALU
@@ -203,8 +215,8 @@ assign out_bypass_b = regBWire;
       
       //OPERATING B
       case(cop)
-        //ADD, SUB, CMP, BNZ, ST
-        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0111:
+        //ADD, SUB, CMP, BNZ, ST, STW
+        4'b0001, 4'b0010, 4'b0100, 4'b0101, 4'b0111, 4'b1111:
           if(operating_b == destReg_addrALU & bp_ALU!=2'b00)begin
             if(bp_ALU==2'b01)begin // result is at ALU
               sel_bypass_b<= 3'b001;
@@ -262,7 +274,7 @@ assign out_bypass_b = regBWire;
   always @(*)
   begin
     clean_instruction_code=0;
-    if(cop==4'b0110 | cop == 4'b0111)
+    if(cop==4'b0110 | cop == 4'b0111 | cop == 4'b1111 | cop == 4'b1110)
       inmed <= {3'b000, q_instruction_code[5:0]};
     else
       inmed <= q_instruction_code[8:0];
@@ -288,7 +300,16 @@ assign out_bypass_b = regBWire;
                   operating_b<=q_instruction_code[11:9];
                   ldSt_enable<=2'b01;
                 end
+      4'b1111 : begin //STORE Word
+                  operating_b<=q_instruction_code[11:9];
+                  ldSt_enable<=2'b01;
+                end
+
       4'b0110 : begin //LOAD
+                  operating_b<=q_instruction_code[2:0];
+                  ldSt_enable<=2'b10;
+                end
+      4'b1110 : begin //LOAD Word
                   operating_b<=q_instruction_code[2:0];
                   ldSt_enable<=2'b10;
                 end
@@ -315,7 +336,9 @@ assign out_bypass_b = regBWire;
       4'b0000 : bp_output <= 0;
       4'b0101 : bp_output <= 0;
       4'b0111 : bp_output <= 0;
+      4'b1111 : bp_output <= 0;
       4'b0110 : bp_output <= 2;
+      4'b1110 : bp_output <= 2;
 
       default : bp_output <= 1;
     endcase
@@ -334,7 +357,9 @@ assign out_bypass_b = regBWire;
       4'b0100 : writeEnableALU = 0; 
       4'b0101 : writeEnableALU = 0; 
       4'b0110 : writeEnableALU = 1;       
+      4'b1110 : writeEnableALU = 1;       
       4'b0111 : writeEnableALU = 0;       
+      4'b1111 : writeEnableALU = 0;       
       default : writeEnableALU = 1'bx; 
     endcase
   end

@@ -50,6 +50,7 @@ wire        writeEnableALU;
 wire [8:0]  inmediate;
 wire [1:0]  bp_ALU;
 wire        clean_alu;
+wire        wordAccessDECODE_ALU;
 
 //alu-TLB
 wire [15:0] dataRegTLB;
@@ -58,36 +59,41 @@ wire[15:0]  alu_resultTLB;
 wire [2:0]  destReg_addrTLB;
 wire        writeEnableTLB;
 wire [1:0]  bp_TLB;
+wire        wordAccessALU_TLB;
 
 //TLB-CACHE
+
+wire petitionFromTlb;
+
+wire [1:0] lineIdFromTlb;
+wire       writeEnableFromTlb;
+
 wire [15:0] dataRegCACHE;
 wire [1:0]  ldSt_enableCACHE;
 wire[15:0]  tlb_resultCACHE;
 wire [2:0]  destReg_addrCACHE;
 wire        writeEnableCACHE;
 wire [1:0]  bp_CACHE;
-
-wire        petitionToData,
-wire [3:0]  lineIdData,
-wire        writeEnableData,
-
+wire        wordAccessTLB_CACHE;
 
 //CACHE-WB
 wire[15:0]  cache_resultWB;
 wire [2:0]  destReg_addrWB;
 wire        writeEnableWB;
 wire [1:0]  bp_WB;
+wire        wordAccessCACHE_WB;
 
 //WB-DECODE
 wire[15:0]  wb_resultDECODE;
 wire [2:0]  destReg_addrDECODE;
 wire        writeEnableDECODE;
 wire [1:0]  bp_DECODE;
+wire        wordAccessWB_DECODE;
 
 //ARB-TLB
 wire serviceReadyArbTlb;
 wire petitionTlbArb;
-wire addrTlbArb;
+wire [addr_width-1:0] addrTlbArb;
 wire weTlbArb;
 
 fetch my_fetch(
@@ -149,12 +155,15 @@ decode my_decode(
 //common inputs
 .clk(clk),   //the clock is the same for ev.
 .reset(reset), //the reset is the same for everyone
-.externalEnable(blockAluDecodeFetch),
+.externalEnable(!blockAluDecodeFetch),
 
 //inputs from FETCH
 .instruction_code(inst_code),
 
+
 //inputs from WB
+
+.word_access_from_wb(wordAccessWB_DECODE),
 .dWB(wb_resultDECODE),
 .writeAddrWB(destReg_addrDECODE),
 .writeEnableWB(writeEnableDECODE), //when write enable, write d into writeAddr
@@ -177,6 +186,7 @@ decode my_decode(
 .dataReg(dataRegALU),
 .ldSt_enable(ldSt_enableALU),
   
+.wordAccess(wordAccessDECODE_ALU),
 
 //inputs for BYPASS
 
@@ -210,6 +220,7 @@ alu_stage my_alu(
 .destReg_addr(destReg_addrALU),
 .we(writeEnableALU),
 .inmediate(inmediate),
+.word_access_from_decode(wordAccessDECODE_ALU),
 .bp_input(bp_ALU),
 .dataReg(dataRegALU),
 .ldSt_enable(ldSt_enableALU),
@@ -227,7 +238,8 @@ alu_stage my_alu(
 .we_output(writeEnableTLB),
 .bp_output(bp_TLB),
 .dataReg_output(dataRegTLB),
-.ldSt_enable_output(ldSt_enableTLB)
+.ldSt_enable_output(ldSt_enableTLB),
+.word_access(wordAccessALU_TLB) 
 );
 
 
@@ -246,7 +258,9 @@ tlblookup_stage my_tlb(
 .bp_input(bp_TLB),
 .dataReg(dataRegTLB),
 .ldSt_enable(ldSt_enableTLB),
-  
+ 
+.word_access_from_alu(wordAccessALU_TLB),
+
 //outputs
 .tlblookup_result(tlb_resultCACHE),
 .destReg_addr_output(destReg_addrCACHE),
@@ -255,23 +269,28 @@ tlblookup_stage my_tlb(
 .dataReg_output(dataRegCACHE),
 .ldSt_enable_output(ldSt_enableCACHE),
 
-.petitionToData(petitionToData),
-.lineIdData(lineIdData),
-.writeEnableData(writeEnableData),
+//this should be directly connected to cache stage
+.petitionToData(petitionFromTlb),
+.lineIdData(lineIdFromTlb),
+.writeEnableData(writeEnableFromTlb),
+
 
 //ARB-TLB
-.serviceReadyArbTlb(serviceReadyArbTlb);
-.petitionTlbArb(petitionTlbArb);
-.addrTlbArb(addrTlbArb);
-.weTlbArb(weTlbArb)
+.serviceReadyArbTlb(serviceReadyArbTlb),
+.petitionTlbArb(petitionTlbArb),
+.addrTlbArb(addrTlbArb),
+.weTlbArb(weTlbArb),
+
+.wordAccess(wordAccessTLB_CACHE),
 
 //from CACHE
 .cache_result(cache_resultWB),
 .destReg_addrCACHE(destReg_addrWB),
-
+.bp_from_cache(bp_WB),
 //from WB
 .wb_result(wb_resultDECODE),
-.destReg_addrWB(destReg_addrDECODE)
+.destReg_addrWB(destReg_addrDECODE),
+.bp_from_wb(bp_DECODE)
 
 );
 
@@ -294,6 +313,15 @@ cache_stage my_cache(
 .dataReg(dataRegCACHE),
 .ldSt_enable(ldSt_enableCACHE),
 
+.petitionFromTlb(petitionFromTlb),
+.lineIdFromTlb(lineIdFromTlb),
+.writeEnableFromTlb(writeEnableFromTlb),
+
+
+.word_access_from_tlb(wordAccessTLB_CACHE),
+.word_access(wordAccessCACHE_WB),
+
+
 //outputs
 .cache_result(cache_resultWB),
 .destReg_addr_output(destReg_addrWB),
@@ -312,8 +340,9 @@ wb_stage my_wb(
 .destReg_addr_input(destReg_addrWB),
 .we_input(writeEnableWB),
 .bp_input(bp_WB),
-  
+.word_access_from_cache(wordAccessCACHE_WB), 
   //outputs
+.word_access(wordAccessWB_DECODE),
 .wb_result(wb_resultDECODE),
 .destReg_addr_output(destReg_addrDECODE),
 .we_output(writeEnableDECODE),

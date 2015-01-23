@@ -31,6 +31,8 @@ always @(*)
       //just to test
       4'b0110 : result_aux= aux_reg_A + aux_reg_B; 
       4'b0111 : result_aux= aux_reg_A + aux_reg_B; 
+      4'b1110 : result_aux= aux_reg_A + aux_reg_B; 
+      4'b1111 : result_aux= aux_reg_A + aux_reg_B; 
       default : result_aux= 16'hx;
     endcase
   end
