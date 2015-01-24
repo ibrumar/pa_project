@@ -4,7 +4,9 @@ module fetch
       //in the data cache we will access not only
       //data with width 'word_width'
       parameter addr_width = 16,
-      parameter num_cache_lines = 4)
+      parameter num_cache_lines = 4,
+      parameter num_phys_bits   = 7 //page of 128B = 1 cache line
+    )
 (
   input [15:0]initial_inst_addr,  //fixed initial instruction address
   input [1:0]sel_pc,              //select the d input of pc register
@@ -16,7 +18,7 @@ module fetch
 
   //memory stuff
 
-  input serviceReadyArbCache,
+  input                         serviceReadyArbCache,
   input  [cache_line_width-1:0] dataMemCache,
   output [addr_width-1:0]       addrCacheArb,
   output                        petitionCacheArb,
@@ -34,6 +36,9 @@ module fetch
 
   wire [word_width-1:0] inst_code_from_cache;
   reg  petitionToCache;
+
+  wire [8:0] physical_pc;
+  wire       tlb_hit;
 
   always @(*)
     begin
@@ -59,7 +64,8 @@ module fetch
     end
 
 instr_cache my_instr_cache (
-      .address(pc_out__mem_in),
+      .virt_address(pc_out__mem_in),
+      .phys_address(physical_pc),
       .clk(clk),
       .petFromProc(petitionToCache),
       .reset(reset),
@@ -71,7 +77,13 @@ instr_cache my_instr_cache (
       .petitionToArb(petitionCacheArb)
 );
 
-
+itlb   my_itlb (
+      .clk(clk),
+      .reset(reset),
+      .virtualAddress(pc_out__mem_in[15:6]),
+      .physicalAddress(physical_pc),
+      .isHit(tlb_hit)
+);
 
 mux4 my_mux(
   .a(initial_inst_addr), 

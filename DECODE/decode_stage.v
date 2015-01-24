@@ -67,6 +67,7 @@ module decode(
   wire [15:0]   q_instruction_code;
   wire [15:0]   regAWire;
   wire [15:0]   regBWire;
+  wire [15:0]   regCWire;
   
   reg[2:0]      sel_bypass_a;
   reg[2:0]      sel_bypass_b;
@@ -75,6 +76,8 @@ module decode(
   reg           bypass_stop_b;
   reg           clean_instruction_code;
   
+  reg [15:0]    data_to_write_to_regfile;
+
   wire          enable_stage_register = externalEnable && enable_decode;
 
   // maybe the ALU shouldn't see the instruction code  
@@ -103,14 +106,27 @@ module decode(
   //read
   .ra(operating_a),
   .rb(operating_b),
+  .rc(writeAddrWB),
   .a(regAWire),
   .b(regBWire),
+  .c(regCWire),
   //write
-  .d(dWB),
+  .d(data_to_write_to_regfile),
   .writeAddr(writeAddrWB),
   .writeEnable(writeEnableWB)
 
 );
+
+//Implementing load byte so that in loads reads the upper part
+//of the destiny register and write the lower part with the
+//data from memory
+
+always @(*) begin
+  if (word_access_from_wb)
+    data_to_write_to_regfile <= dWB;
+  else 
+    data_to_write_to_regfile <= {regCWire[15:8], dWB[7:0]};
+end
 
 //ddavila: MUXs for BYPASS
 assign out_bypass_a = regAWire;
@@ -138,10 +154,11 @@ assign out_bypass_b = regBWire;
   always @(*)
   begin
     case (cop)
-      4'b1110, 4'b1111:
-         wordAccess <= 1'b1;
+      4'b0110, 4'b0111:
+         wordAccess <= 1'b0;//only loads and stores can operate at byte level
+                            //maybe we'll also implement the MOVI's
       default:
-         wordAccess <= 1'b0;
+         wordAccess <= 1'b1;
     endcase
   end 
 

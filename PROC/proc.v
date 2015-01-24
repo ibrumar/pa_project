@@ -113,7 +113,7 @@ fetch my_fetch(
 .addrCacheArb(addrCacheArb),
 .petitionCacheArb(petitionCacheArb),
 //fixed input
-.initial_inst_addr(16'h000c),  //fixed initial instruction address
+.initial_inst_addr(16'h020c),  //fixed initial instruction address
 
 //input from DECODE
 .sel_pc(sel_pc),               //select the d input of pc register
@@ -124,8 +124,6 @@ fetch my_fetch(
 );
 
 //memory and arbiter accessed by fetch and tlblookup
-
-
 arbiter my_arbiter
      (.addressInstr(addrCacheArb),
       .addressDat(addrTlbArb),

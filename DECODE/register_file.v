@@ -1,10 +1,12 @@
 module register_file#(parameter NUM_REGISTERS = 8, parameter LOG_NUM_REGISTERS=3, parameter WIDTH = 16)
 ( 
   input clk,
+  input [LOG_NUM_REGISTERS-1:0]rc,
   input [LOG_NUM_REGISTERS-1:0]rb, //CAMBIAR LOS CLAUDATORS
   input [LOG_NUM_REGISTERS-1:0]ra,
   output reg [WIDTH-1:0] a,
   output reg [WIDTH-1:0] b,
+  output reg [WIDTH-1:0] c,
   input [WIDTH-1:0] d,
   input [LOG_NUM_REGISTERS-1:0] writeAddr,
   input writeEnable, //when write enable, write d into writeAddr
@@ -46,6 +48,21 @@ module register_file#(parameter NUM_REGISTERS = 8, parameter LOG_NUM_REGISTERS=3
         default: b <= concatenated_outputs[127:112];
       endcase
     end
+
+  always @(*)
+    begin
+      case(rc)
+        3'b000: c <= concatenated_outputs[15:0];
+        3'b001: c <= concatenated_outputs[31:16];
+        3'b010: c <= concatenated_outputs[47:32];
+        3'b011: c <= concatenated_outputs[63:48];
+        3'b100: c <= concatenated_outputs[79:64];
+        3'b101: c <= concatenated_outputs[95:80];
+        3'b110: c <= concatenated_outputs[111:96];
+        default: c <= concatenated_outputs[127:112];
+      endcase
+    end
+
   
   decode3 we_dec
   ( 
