@@ -46,7 +46,6 @@ wire [8:0]  inmediate;
 wire [1:0]  bp_ALU;
 wire        clean_alu;
 wire        decode_enableALU;
-wire [2:0]  tail_robALU;
 wire [15:0] pcALU;
 wire [1:0]  ex_vectorALU;
 wire        ticketWE_ALU;
@@ -161,7 +160,7 @@ f_stages my_f_stages(
 .enable(decode_enableFSTAGES),
 .destReg_addr(destReg_addrALU),
 .we(writeEnableALU), //THIS SHOULD BE ALWAYS 1
-.tail_rob_input(tail_robALU),
+.tail_rob_input(tail_robDECODE),
 .pc_input(pcALU),
 .inmediate(inmediate),
 .opa_addr(opa_addr_fstages),
@@ -328,7 +327,6 @@ decode my_decode(
 .dataReg(dataRegALU),
 .ldSt_enable(ldSt_enableALU),
 .enableALU(decode_enableALU),
-.tail_rob_output(tail_robALU),
 .pc_output(pcALU),
 .ex_vector_output(ex_vectorALU),
 .ticketWE_output(ticketWE_ALU),
@@ -389,7 +387,7 @@ alu_stage my_alu(
 .bp_input(bp_ALU),
 .dataReg(dataRegALU),
 .ldSt_enable(ldSt_enableALU),
-.tail_rob_input(tail_robALU),
+.tail_rob_input(tail_robDECODE),
 .pc_input(pcALU),
 .ex_vector_input(ex_vectorALU),
 .ticketWE_input(ticketWE_ALU),
