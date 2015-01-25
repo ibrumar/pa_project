@@ -75,6 +75,7 @@ wire [2:0]  destReg_addrCACHE;
 wire        writeEnableCACHE;
 wire [1:0]  bp_CACHE;
 wire        wordAccessTLB_CACHE;
+wire [15:0] offendingAddressTLB_CACHE;
 
 //CACHE-WB
 wire[15:0]  cache_resultWB;
@@ -261,6 +262,9 @@ tlblookup_stage my_tlb(
 
 //outputs
 .tlblookup_result(tlb_resultCACHE),
+
+.offendingAddress(offendingAddressTLB_CACHE), //for itlb and dtlb exceptions
+
 .destReg_addr_output(destReg_addrCACHE),
 .we_output(writeEnableCACHE),
 .bp_output(bp_CACHE),
@@ -305,6 +309,7 @@ cache_stage my_cache(
 .dataReadFromMem(dataMemCache),
 //inputs
 .tlb_result(tlb_resultCACHE),
+.offendingAddress(offendingAddressTLB_CACHE), //for itlb and dtlb exceptions
 .destReg_addr_input(destReg_addrCACHE),
 .we_input(writeEnableCACHE),
 .bp_input(bp_CACHE),

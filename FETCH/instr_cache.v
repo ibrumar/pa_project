@@ -8,7 +8,7 @@ module instr_cache
      (
       //inputs from processor
       input  [addr_width-1:0]       virt_address, //last 7 bits are independent of tlb
-      input  [addr_width-8:0]       phys_address, //translated part has 9 bits
+      input  [addr_width-7:0]       phys_address, //translated part has 9 bits
       input                         clk,
       input                         reset,
       input                         petFromProc,
@@ -56,8 +56,8 @@ module instr_cache
                                     
    
   //TAGS
-  wire [addr_width-8:0] tagCables [0:num_cache_lines-1]; //less tag cables. it should be an -8
-  wire [addr_width-8:0] selectedTagCables = tagCables[virt_address[5:4]];
+  wire [addr_width-7:0] tagCables [0:num_cache_lines-1]; //less tag cables. it should be an -8
+  wire [addr_width-7:0] selectedTagCables = tagCables[virt_address[5:4]];
 
   always @(*)
     begin
@@ -103,7 +103,7 @@ module instr_cache
   generate
     for (i=0; i<num_cache_lines; i=i+1)
       begin: gen_tag_register
-        register #(9) tag_register(.clk(clk),
+        register #(10) tag_register(.clk(clk),
                            .enable(enableBits[i]), 
                            .reset(reset),
                            .d({phys_address}),

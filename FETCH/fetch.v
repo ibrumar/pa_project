@@ -37,7 +37,7 @@ module fetch
   wire [word_width-1:0] inst_code_from_cache;
   reg  petitionToCache;
 
-  wire [8:0] physical_pc;
+  wire [9:0] physical_pc;
   wire       tlb_hit;
 
   always @(*)

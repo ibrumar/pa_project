@@ -25,6 +25,8 @@ module tlblookup_stage
   
   //address where the access is made
   output[15:0]  tlblookup_result,
+  output[15:0]  offendingAddress,
+
   output[2:0]   destReg_addr_output,
   output reg       we_output,
   output reg [1:0]  bp_output,
@@ -77,13 +79,43 @@ module tlblookup_stage
   .out(dataReg_output)
   );
 
+  wire       tlb_hit;
 
   wire is_load = ldSt_enable_output_aux[1];
   wire is_store = ldSt_enable_output_aux[0];
   wire is_mem_access = is_load || is_store;
   wire is_hit;
 
-  assign blockPreviousStages = !is_hit && is_mem_access;
+  assign blockPreviousStages = !is_hit && is_mem_access && tlb_hit;
+
+  wire [8:0] physical_addr0; //requires translation
+  wire [8:0] physical_addr1; //requires translation
+
+
+
+  //assign dtlbException = !tlb_hit; we will pass this signal
+  //when we'll have Diego's error communication
+  
+  wire [8:0] offendingAddressUpper;
+  assign offendingAddress[6:0] = 7'b0000000;//lower bits are insignificant
+  assign offendingAddress[15:7] = offendingAddressUpper;
+
+  wire [15:0] tlblookup_increased_result = tlblookup_result + 1; //you may have a
+                                                          //tlbmiss in 
+                                                          //another page if
+                                                          //the access is to
+                                                          //word
+  dtlb   my_dtlb (
+    .clk(clk),
+    .reset(reset),
+    .isWordAccess(wordAccess), //it is needed for knowing if the following page
+    .virtualAddress0(tlblookup_result[15:7]), //must be taken into account
+    .virtualAddress1(tlblookup_increased_result[15:7]),
+    .physicalAddress0(physical_addr0),
+    .physicalAddress1(physical_addr1),
+    .offendingAddress(offendingAddressUpper),
+    .isHit(tlb_hit)
+  );
 
 
   //for loads tlblookup_result is the address
@@ -93,7 +125,10 @@ module tlblookup_stage
   tags cache_tags
       (
   //inputs from processor
-  .address(tlblookup_result),
+  .complete_virt_address0(tlblookup_result),
+  .complete_virt_address1(tlblookup_increased_result),
+  .phys_address0(physical_addr0),
+  .phys_address1(physical_addr1),
   .clk(clk),
   .reset(reset),
   .petFromProc(is_mem_access),
@@ -101,6 +136,7 @@ module tlblookup_stage
   .we(is_store),
 
   .memServiceReady(serviceReadyArbTlb),
+  .isHitInTLB(tlb_hit), //if it's miss in tlb don't do petitions to memory
 
   .isHit(is_hit), //only one isHit is maintained for both bytes
                                  
@@ -136,6 +172,12 @@ module tlblookup_stage
       bp_output <= 2'b00;
       ldSt_enable_output <= 2'b00;
       enable_tlblookup_internal <= 1'b0;
+    end
+    else if (!tlb_hit && is_mem_access) begin
+      we_output <= 1'b0;
+      bp_output <= 2'b00;
+      ldSt_enable_output <= 2'b00;
+      enable_tlblookup_internal <= enable_tlblookup;
     end
     else begin
       we_output <= we_output_aux;

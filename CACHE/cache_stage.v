@@ -24,18 +24,16 @@ module cache_stage
 
   //Communication with memory (managed by tlb stage)
   output [cache_line_width-1:0]  dataWrittenToMem,
-
   input [cache_line_width-1:0]  dataReadFromMem,
 
 
   //forward inputs
-  input [15:0]tlb_result, //contains the address where the access is made
+  input [15:0]tlb_result, //contains the virtual address
+  input[15:0]  offendingAddress,
   input [2:0] destReg_addr_input,
   input      we_input,
   input [1:0] bp_input,
- 
   input       word_access_from_tlb,
-
   output reg [15:0]cache_result,
   output[2:0] destReg_addr_output,
   output     we_output,
@@ -47,22 +45,24 @@ module cache_stage
   wire [15:0] dataAddr;
   wire [1:0]  ldSt_enable_output;
  
-  wire is_load = ldSt_enable_output[1];
-  wire is_store = ldSt_enable_output[0];
-  wire is_mem_access = is_load || is_store;
-
+  wire is_load = ldSt_enable_output[1]; //if in tlb lookup you had a miss
+  wire is_store = ldSt_enable_output[0];//you won't even notice that now
+  wire is_mem_access = is_load || is_store; //a mem access instrucion is passing
+                                            //throught the stage
   //cache outputs
   wire [byte_width-1:0] byte0; //byte corresponding to loadw byte 0 or loadb
   wire [byte_width-1:0] byte1; //byte corresponding to loadw byte 1
 
-  register #(41) cache_register(
+  wire[15:0]  q_offendingAddress;
+
+  register #(57) cache_register(
     .clk(clk),
     .enable(enable_cache),
     .reset(reset),
     .d({tlb_result, destReg_addr_input, we_input, bp_input, dataReg,
-      ldSt_enable, word_access_from_tlb}),
+      ldSt_enable, word_access_from_tlb,  offendingAddress}),
     .q({dataAddr, destReg_addr_output, we_output, bp_output,
-      dataReg_output, ldSt_enable_output, word_access})
+      dataReg_output, ldSt_enable_output, word_access, q_offendingAddress})
   );
   
   always @(*) begin
