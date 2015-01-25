@@ -1,0 +1,7 @@
+#Una excepcion y un store deben de ser guardados en el rob, pero una NOP no
+MOVL R1 1
+MOV R2 10
+MOV R3 4
+ST R5 R1 0
+LD R7 R1 0
+
