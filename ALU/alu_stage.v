@@ -9,15 +9,19 @@ module alu_stage(
   input [15:0]regB,
   input [3:0] cop,
   input [8:0] inmediate,
-  
+    
   //forward inputs
   input [15:0]dataReg,
   input [1:0] ldSt_enable,
   input [2:0] destReg_addr,
+  input [1:0] ex_vector_input,
+  output ticketWE_input,
+
 
   input       we,
   input [1:0] bp_input,
   input [2:0] tail_rob_input,
+  input [15:0]pc_input,
   
   //outputs
   output[15:0]  alu_result,
@@ -27,7 +31,11 @@ module alu_stage(
   output [1:0]  bp_output,
   output [15:0] dataReg_output,
   output [1:0]  ldSt_enable_output,
-  output [2:0]tail_rob_output
+  output [2:0]  tail_rob_output,
+  output [15:0] pc_output,
+  output [1:0] ex_vector_output,
+  output ticketWE_output
+
   
   );
   
@@ -39,15 +47,18 @@ module alu_stage(
    
   reg regB_sel;
   
-  register #(72) alu_register(
+  register #(91) alu_register(
     .clk(clk),
     .enable(enable_alu),
-    .reset(reset),
+    .reset(reset & enable_alu),
     .d({regA, regB, cop, destReg_addr, we, inmediate, bp_input, dataReg,
-       ldSt_enable, tail_rob_input}),
+       ldSt_enable, tail_rob_input, pc_input, 
+       ex_vector_input, ticketWE_input}),
+
     .q({q_regA__alu_in, q_regB__mux_a, q_cop__alu_in, destReg_addr_output,
        we_output, q_inmediate__mux_b, bp_output, dataReg_output, 
-       ldSt_enable_output, tail_rob_output})
+       ldSt_enable_output, tail_rob_output, pc_output, 
+       ex_vector_output, ticketWE_output})
   );
   
   

@@ -7,14 +7,20 @@ module fetch(
   input enable_pc,
   input reset,
 
-  //output[7:0]inst_code_high,  
-  //output[7:0]inst_code_low
-  output[15:0]inst_code
+  output[15:0]inst_code,
+  //forward
+  output[15:0]pc_output,
+  output reg[1:0] ex_vector_output
 );
 
   wire [15:0]mux_out__pc_in;
   wire [15:0]pc_out__mem_in;
+  assign pc_output=pc_out__mem_in;
 
+//EXCEPTIONS
+always @(clk)begin
+ ex_vector_output<=2'b00;
+ end
   
 mux4 my_mux(
   .a(initial_inst_addr), 
